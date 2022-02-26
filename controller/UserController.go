@@ -41,7 +41,7 @@ func Register(ctx *gin.Context) {
 	// 创建用户
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"code": 500, "msg": "加密错误"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"code": 500, "msg": "加密错误"})
 		return
 	}
 	newUser := model.User{
@@ -85,12 +85,17 @@ func Login(ctx *gin.Context) {
 
 	// 判断密码是否正确
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"code": 400, "msg": "密码错误"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"code": 400, "msg": "密码错误"})
 		return
 	}
 
 	// 发放token
-	token := "11"
+	token, err := common.ReleaseToken(user)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"code": 500, "msg": "系统异常"})
+		log.Printf("token generate error: %v", err)
+		return
+	}
 
 	// 返回结果
 	ctx.JSON(200, gin.H{
@@ -98,6 +103,12 @@ func Login(ctx *gin.Context) {
 		"data": gin.H{"token": token},
 		"msg":  "登录成功",
 	})
+}
+
+func Info(ctx *gin.Context) {
+	user, _ := ctx.Get("user")
+
+	ctx.JSON(http.StatusOK, gin.H{"code": 200, "data": gin.H{"user": user}})
 }
 
 func isTelephoneExist(db *gorm.DB, telephone string) bool {
