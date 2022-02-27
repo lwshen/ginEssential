@@ -6,6 +6,7 @@ import (
 	"slw.app/ginessential/common"
 	"slw.app/ginessential/model"
 	"slw.app/ginessential/response"
+	"slw.app/ginessential/vo"
 	"strconv"
 )
 
@@ -27,25 +28,22 @@ func NewCategoryController() ICategoryController {
 }
 
 func (c CategoryController) Create(ctx *gin.Context) {
-	var requestCategory model.Category
-	ctx.Bind(&requestCategory)
-
-	if requestCategory.Name == "" {
+	var requestCategory vo.CreateCategoryRequest
+	if err := ctx.ShouldBind(&requestCategory); err != nil {
 		response.Fail(ctx, nil, "数据验证错误,分类名称必填")
 		return
 	}
 
-	c.DB.Create(&requestCategory)
+	category := model.Category{Name: requestCategory.Name}
+	c.DB.Create(&category)
 
 	response.Success(ctx, gin.H{"category": requestCategory}, "")
 }
 
 func (c CategoryController) Update(ctx *gin.Context) {
 	// 绑定body中的参数
-	var requestCategory model.Category
-	ctx.Bind(&requestCategory)
-
-	if requestCategory.Name == "" {
+	var requestCategory vo.CreateCategoryRequest
+	if err := ctx.ShouldBind(&requestCategory); err != nil {
 		response.Fail(ctx, nil, "数据验证错误,分类名称必填")
 		return
 	}
