@@ -2,9 +2,8 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
-	"slw.app/ginessential/common"
 	"slw.app/ginessential/model"
+	"slw.app/ginessential/repository"
 	"slw.app/ginessential/response"
 	"slw.app/ginessential/vo"
 	"strconv"
@@ -15,15 +14,15 @@ type ICategoryController interface {
 }
 
 type CategoryController struct {
-	DB *gorm.DB
+	Repository repository.CategoryRepository
 }
 
 func NewCategoryController() ICategoryController {
-	db := common.GetDB()
-	db.AutoMigrate(model.Category{})
+	categoryRepository := repository.NewCategoryRepository()
+	categoryRepository.DB.AutoMigrate(model.Category{})
 
 	return CategoryController{
-		DB: db,
+		Repository: categoryRepository,
 	}
 }
 
@@ -34,10 +33,13 @@ func (c CategoryController) Create(ctx *gin.Context) {
 		return
 	}
 
-	category := model.Category{Name: requestCategory.Name}
-	c.DB.Create(&category)
+	category, err := c.Repository.Create(requestCategory.Name)
+	if err != nil {
+		response.Fail(ctx, nil, "创建失败")
+		return
+	}
 
-	response.Success(ctx, gin.H{"category": requestCategory}, "")
+	response.Success(ctx, gin.H{"category": category}, "")
 }
 
 func (c CategoryController) Update(ctx *gin.Context) {
@@ -51,24 +53,28 @@ func (c CategoryController) Update(ctx *gin.Context) {
 	// 获取path中的参数
 	categoryId, _ := strconv.Atoi(ctx.Params.ByName("id"))
 
-	var updateCategory model.Category
-	if c.DB.First(&updateCategory, categoryId).RecordNotFound() {
+	updateCategory, err := c.Repository.SelectById(categoryId)
+	if err != nil {
 		response.Fail(ctx, nil, "分类不存在")
 		return
 	}
 
 	// 更新分类
-	c.DB.Model(&updateCategory).Update("name", requestCategory.Name)
+	category, err := c.Repository.Update(*updateCategory, requestCategory.Name)
+	if err != nil {
+		response.Fail(ctx, nil, "修改失败")
+		return
+	}
 
-	response.Success(ctx, gin.H{"category": updateCategory}, "修改成功")
+	response.Success(ctx, gin.H{"category": category}, "修改成功")
 }
 
 func (c CategoryController) Show(ctx *gin.Context) {
 	// 获取path中的参数
 	categoryId, _ := strconv.Atoi(ctx.Params.ByName("id"))
 
-	var category model.Category
-	if c.DB.First(&category, categoryId).RecordNotFound() {
+	category, err := c.Repository.SelectById(categoryId)
+	if err != nil {
 		response.Fail(ctx, nil, "分类不存在")
 		return
 	}
@@ -80,7 +86,7 @@ func (c CategoryController) Delete(ctx *gin.Context) {
 	// 获取path中的参数
 	categoryId, _ := strconv.Atoi(ctx.Params.ByName("id"))
 
-	if err := c.DB.Delete(model.Category{}, categoryId).Error; err != nil {
+	if err := c.Repository.DeleteById(categoryId); err != nil {
 		response.Fail(ctx, nil, "删除失败,请重试")
 		return
 	}
