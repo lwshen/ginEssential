@@ -35,8 +35,9 @@ func (c CategoryController) Create(ctx *gin.Context) {
 
 	category, err := c.Repository.Create(requestCategory.Name)
 	if err != nil {
-		response.Fail(ctx, nil, "创建失败")
-		return
+		panic(err)
+		//response.Fail(ctx, nil, "创建失败")
+		//return
 	}
 
 	response.Success(ctx, gin.H{"category": category}, "")
