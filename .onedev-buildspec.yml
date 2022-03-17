@@ -41,13 +41,15 @@ jobs:
     image: golang:1.17-bullseye
     interpreter: !DefaultInterpreter
       commands:
+      - go env -w GO111MODULE=on
+      - go env -w  GOPROXY=https://goproxy.cn,direct
       - go mod download
-      - go build -race -o @project_path@/bin
+      - go build -race -o @project_path@/ginEssential
     useTTY: false
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !PublishArtifactStep
     name: publish artifacts
-    artifacts: '@project_path@/bin/*'
+    artifacts: '@project_path@/ginEssential'
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   triggers:
   - !PullRequestUpdateTrigger {}
