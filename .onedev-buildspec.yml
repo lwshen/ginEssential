@@ -27,3 +27,35 @@ jobs:
   cpuRequirement: 500
   memoryRequirement: 256
   timeout: 3600
+- name: golang ci
+  steps:
+  - !CheckoutStep
+    name: checkout
+    cloneCredential: !DefaultCredential {}
+    withLfs: false
+    withSubmodules: false
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !CommandStep
+    name: build
+    runInContainer: true
+    image: golang:1.17-bullseye
+    interpreter: !DefaultInterpreter
+      commands:
+      - go mod download
+      - go build -race -o @project_path@/bin
+    useTTY: false
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !PublishArtifactStep
+    name: publish artifacts
+    artifacts: '@project_path@/bin/*'
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  triggers:
+  - !PullRequestUpdateTrigger {}
+  - !BranchUpdateTrigger
+    branches: master
+  retryCondition: never
+  maxRetries: 3
+  retryDelay: 30
+  cpuRequirement: 250
+  memoryRequirement: 256
+  timeout: 3600
